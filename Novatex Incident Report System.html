@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Novatex | Initial Incident Report System</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root{
+    --navy:#0d2a52;
+    --navy-dark:#081c39;
+    --gold:#d99a2b;
+    --bg:#f2f5f9;
+    --card:#ffffff;
+    --border:#dde3ec;
+    --text:#1e2b3c;
+    --muted:#6b7686;
+    --red:#c0392b;
+    --green:#1e8449;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text);}
+  header.topbar{background:linear-gradient(135deg,var(--navy),var(--navy-dark));color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+  .brand{display:flex;align-items:center;gap:14px;}
+  .brand .subtitle{font-size:14px;color:#e8edf6;font-weight:600;}
+  .topbar-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .sync-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#c5cdd9;margin-right:6px;vertical-align:middle;}
+  .sync-dot.on{background:#3adb76;}
+  .sync-dot.off{background:#c0392b;}
+  .sync-label{font-size:12px;color:#e8edf6;}
+  nav.tabs{display:flex;background:#fff;border-bottom:1px solid var(--border);padding:0 24px;gap:4px;flex-wrap:wrap;}
+  nav.tabs button{background:none;border:none;padding:14px 18px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;}
+  nav.tabs button.active{color:var(--navy);border-bottom-color:var(--gold);}
+  main{padding:20px 24px 60px;max-width:1200px;margin:0 auto;}
+  .view{display:none;}
+  .view.active{display:block;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:16px;}
+  fieldset{border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;padding:14px 18px 18px;}
+  legend{font-weight:700;color:var(--navy);padding:0 8px;font-size:14px;text-transform:uppercase;letter-spacing:.4px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px 16px;}
+  .grid.cols-2{grid-template-columns:repeat(2,1fr);}
+  .grid.cols-3{grid-template-columns:repeat(3,1fr);}
+  @media (max-width:700px){.grid.cols-2,.grid.cols-3{grid-template-columns:1fr;}}
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--navy);margin-bottom:4px;}
+  label .req{color:var(--red);}
+  input[type=text],input[type=date],input[type=time],input[type=number],input[type=tel],select,textarea{
+    width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13.5px;font-family:inherit;background:#fff;color:var(--text);
+  }
+  textarea{resize:vertical;min-height:80px;}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--gold);border-color:var(--gold);}
+  .field{margin-bottom:2px;}
+  .checkbox-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;}
+  @media (max-width:700px){.checkbox-grid{grid-template-columns:1fr;}}
+  .chk-row{display:flex;align-items:center;gap:8px;font-size:13.5px;padding:4px 0;}
+  .chk-row input{width:auto;}
+  .damage-block{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+  @media (max-width:800px){.damage-block{grid-template-columns:1fr;}}
+  .damage-col{border:1px solid var(--border);border-radius:8px;padding:10px 12px;}
+  .damage-col h4{margin:0 0 8px;font-size:12.5px;color:var(--navy);text-transform:uppercase;}
+  .btn{display:inline-block;border:none;border-radius:6px;padding:9px 16px;font-size:13.5px;font-weight:600;cursor:pointer;text-decoration:none;}
+  .btn-primary{background:var(--navy);color:#fff;}
+  .btn-primary:hover{background:var(--navy-dark);}
+  .btn-gold{background:var(--gold);color:#1e2b3c;}
+  .btn-outline{background:#fff;border:1px solid var(--border);color:var(--navy);}
+  .btn-outline:hover{background:#f0f3f8;}
+  .btn-danger{background:#fdecea;color:var(--red);}
+  .btn-danger:hover{background:#f9d3ce;}
+  .btn-sm{padding:5px 10px;font-size:12px;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .row-actions{display:flex;gap:6px;flex-wrap:wrap;}
+  .photo-drop{border:2px dashed var(--border);border-radius:8px;padding:20px;text-align:center;color:var(--muted);font-size:13px;cursor:pointer;}
+  .photo-drop:hover{border-color:var(--gold);color:var(--navy);}
+  .photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:12px;}
+  .photo-thumb{position:relative;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#fafafa;}
+  .photo-thumb img{width:100%;height:90px;object-fit:cover;display:block;}
+  .photo-thumb .rm{position:absolute;top:4px;right:4px;background:rgba(192,57,43,.9);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;line-height:20px;text-align:center;cursor:pointer;padding:0;}
+  .photo-thumb .cap{font-size:10px;padding:3px 5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .photo-thumb .ph-missing{font-size:11px;color:var(--muted);padding:10px;text-align:center;}
+  .banner{padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13.5px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .banner.success{background:#e9f7ef;color:var(--green);border:1px solid #b7e4c7;}
+  .banner.warn{background:#fdf3e3;color:#8a6116;border:1px solid #f3dfa8;}
+  .banner.error{background:#fdecea;color:var(--red);border:1px solid #f5c6c0;}
+  .banner-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .banner input[type=text]{min-width:260px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{padding:9px 10px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top;}
+  th{background:#f7f9fc;color:var(--navy);font-size:12px;text-transform:uppercase;position:sticky;top:0;}
+  tr:hover td{background:#fbfcfe;}
+  .badge{display:inline-block;background:#eef1f7;color:var(--navy);border-radius:12px;padding:2px 9px;font-size:11px;margin:1px 3px 1px 0;}
+  .badge.major{background:#fdecea;color:var(--red);}
+  .badge.minor{background:#fdf3e3;color:#8a6116;}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;}
+  .toolbar .field{min-width:160px;flex:1;}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:18px;}
+  .kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+  .kpi .num{font-size:26px;font-weight:700;color:var(--navy);}
+  .kpi .lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;}
+  .kpi.alert .num{color:var(--red);}
+  .charts-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
+  @media (max-width:900px){.charts-grid{grid-template-columns:1fr;}}
+  .chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+  .chart-card h3{margin:0 0 10px;font-size:13.5px;color:var(--navy);}
+  canvas{max-height:260px;}
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(10,20,40,.55);align-items:center;justify-content:center;z-index:50;padding:20px;}
+  .modal-bg.active{display:flex;}
+  .modal{background:#fff;border-radius:var(--radius);max-width:820px;width:100%;max-height:88vh;overflow:auto;padding:22px 24px;}
+  .modal h2{margin-top:0;color:var(--navy);font-size:18px;}
+  .modal .close{float:right;background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);}
+  .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;font-size:13px;margin-bottom:14px;}
+  @media (max-width:600px){.detail-grid{grid-template-columns:1fr;}}
+  .detail-grid div b{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;font-weight:600;}
+  .empty-state{text-align:center;padding:40px 20px;color:var(--muted);}
+  footer.appfoot{text-align:center;font-size:11.5px;color:var(--muted);padding:20px;}
+  .req-star{color:var(--red);}
+  .small-muted{font-size:11.5px;color:var(--muted);margin-top:4px;}
+  .mismatch{color:var(--red);font-weight:600;}
+  #pdfTemplate{position:fixed;top:0;left:-99999px;width:780px;background:#fff;}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="subtitle">Gatronova Logistics &mdash; Initial Incident Report</div>
+  </div>
+  <div class="topbar-actions">
+    <span><span class="sync-dot off" id="syncDot"></span><span class="sync-label" id="syncLabel">Not connected</span></span>
+    <button class="btn btn-outline btn-sm" id="btnSyncSettings">Sync Settings</button>
+    <button class="btn btn-outline btn-sm" id="btnImport">Import Backup</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" multiple>
+    <button class="btn btn-outline btn-sm" id="btnExportAll">Export All (.json)</button>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-view="formView">New Report</button>
+  <button class="tab-btn" data-view="recordsView">All Records</button>
+  <button class="tab-btn" data-view="dashView">Dashboard</button>
+</nav>
+
+<main>
+
+<div class="banner warn" id="syncConfigBanner" style="display:none;">
+  <span id="syncConfigMsg">Live sync isn't set up yet. Paste your Google Apps Script Web App URL below to connect this dashboard to your organization's shared Google Sheet — everyone with this link will then see the same live records.</span>
+  <span class="banner-actions">
+    <input type="text" id="syncUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+    <button class="btn btn-gold btn-sm" id="saveSyncUrlBtn">Connect</button>
+  </span>
+</div>
+
+<div id="syncErrorHost"></div>
+
+<!-- ============ NEW REPORT VIEW ============ -->
+<div class="view active" id="formView">
+
+  <div class="banner warn">
+    Records are saved to your organization's shared Google Sheet, so everyone with the dashboard link sees the same live data and can view or edit any report. Photos are stored in a linked Google Drive folder. A PDF copy of each report also downloads automatically when you save. Use <b>Export All (.json)</b> occasionally to keep a metadata backup (photos live in Drive, not in this backup file).
+  </div>
+
+  <div id="submitBanner"></div>
+
+  <form id="incidentForm">
+    <input type="hidden" id="editingId">
+
+    <fieldset>
+      <legend>Incident Overview</legend>
+      <div class="grid cols-3">
+        <div class="field"><label>Plant <span class="req">*</span></label>
+          <select id="plant" required>
+            <option value="">Select Plant</option>
+            <option>Novatex Khi - 3110</option>
+            <option>BOPET Khi - 3120</option>
+            <option>Gatron - 1110</option>
+            <option>Krystalite Khi - 5110</option>
+            <option>Novatex FSD - 3130</option>
+            <option>BOPET SKP - 3180</option>
+            <option>PET Flakes SKP - 3185</option>
+            <option>Krystalite LHR - 5120</option>
+          </select>
+        </div>
+        <div class="field"><label>Incident Date <span class="req">*</span></label><input type="date" id="incidentDate" required></div>
+        <div class="field"><label>Incident Time <span class="req">*</span></label><input type="time" id="incidentTime" required></div>
+        <div class="field"><label>Base Station</label><input type="text" id="baseStation" placeholder="e.g. Karachi Terminal"></div>
+        <div class="field"><label>Incident Location <span class="req">*</span></label><input type="text" id="incidentLocation" required placeholder="e.g. N-5 Highway, near Hyderabad"></div>
+        <div class="field"><label>Activity Associated with Incident</label><input type="text" id="activity" placeholder="e.g. Normal Driving"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Vehicle &amp; Trip Details</legend>
+      <div class="grid cols-3">
+        <div class="field"><label>Vehicle #</label><input type="text" id="vehicleNumber"></div>
+        <div class="field"><label>Vehicle Make</label><input type="text" id="vehicleMake" placeholder="e.g. Hino, Nissan"></div>
+        <div class="field"><label>Attachment Type</label><input type="text" id="attachmentType" placeholder="e.g. Bunker"></div>
+        <div class="field"><label>Attachment #</label><input type="text" id="attachmentNumber"></div>
+        <div class="field"><label>Size</label><input type="text" id="bunkerSize" placeholder="e.g. 20 ft"></div>
+        <div class="field"><label>Loaded / Empty</label>
+          <select id="loadedEmpty"><option value="">Select</option><option>Loaded</option><option>Empty</option></select>
+        </div>
+        <div class="field"><label>Origin</label><input type="text" id="origin"></div>
+        <div class="field"><label>Destination</label><input type="text" id="destination"></div>
+        <div class="field"><label>Customer</label><input type="text" id="customer"></div>
+        <div class="field"><label>Cargo Type</label><input type="text" id="cargoType"></div>
+        <div class="field"><label>Quantity (pkgs/weight)</label><input type="text" id="quantity"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Driver Information</legend>
+      <div class="grid cols-3">
+        <div class="field"><label>Driver Name</label><input type="text" id="driverName"></div>
+        <div class="field"><label>Contact #</label><input type="tel" id="contactNumber"></div>
+        <div class="field"><label>Employee ID</label><input type="text" id="employeeId"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Conditions</legend>
+      <div class="grid cols-3">
+        <div class="field"><label>Weather Condition</label>
+          <select id="weatherCondition">
+            <option>Normal</option><option>Rain</option><option>Fog</option><option>Storm</option><option>Extreme Heat</option><option>Other</option>
+          </select>
+        </div>
+        <div class="field"><label>Road Condition</label>
+          <select id="roadCondition">
+            <option>Normal</option><option>Wet / Slippery</option><option>Under Construction</option><option>Damaged / Potholes</option><option>Blocked / Congested</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Incident Type</legend>
+      <div class="checkbox-grid" id="incidentTypeGrid">
+        <label class="chk-row"><input type="checkbox" value="Injury of NL Employee"> Injury of NL Employee</label>
+        <label class="chk-row"><input type="checkbox" value="NL Asset Damage"> NL Asset Damage</label>
+        <label class="chk-row"><input type="checkbox" value="Injury to Third Party"> Injury to Third Party</label>
+        <label class="chk-row"><input type="checkbox" value="Third Party Asset Damage"> Third Party Asset Damage</label>
+        <label class="chk-row"><input type="checkbox" value="Fatality"> Fatality</label>
+        <label class="chk-row"><input type="checkbox" value="Cargo Damage"> Cargo Damage</label>
+        <label class="chk-row"><input type="checkbox" value="Environment Damage"> Environment Damage</label>
+        <label class="chk-row"><input type="checkbox" value="Cargo Loss"> Cargo Loss</label>
+        <label class="chk-row"><input type="checkbox" value="Liquid Spillage"> Liquid Spillage</label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Injury Details (if any)</legend>
+      <div class="grid cols-3">
+        <div class="field"><label>No. of NL Injuries</label><input type="number" min="0" id="injNL" value="0"></div>
+        <div class="field"><label>No. of Third Party Injuries</label><input type="number" min="0" id="injThird" value="0"></div>
+        <div class="field"><label>Total No. of Injuries (auto)</label><input type="number" id="injTotal" value="0" readonly style="background:#f2f5f9"></div>
+        <div class="field"><label>No. of Major Injuries</label><input type="number" min="0" id="injMajor" value="0"></div>
+        <div class="field"><label>No. of Minor Injuries</label><input type="number" min="0" id="injMinor" value="0"></div>
+        <div class="field" id="injMismatchWrap" style="display:flex;align-items:end;"><span class="small-muted" id="injMismatch"></span></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Asset &amp; Cargo Damage (if any)</legend>
+      <div class="damage-block">
+        <div class="damage-col">
+          <h4>Novatex Asset</h4>
+          <label class="chk-row"><input type="checkbox" id="atplMajor"> Major</label>
+          <label class="chk-row"><input type="checkbox" id="atplMinor"> Minor</label>
+        </div>
+        <div class="damage-col">
+          <h4>Third Party Asset</h4>
+          <label class="chk-row"><input type="checkbox" id="tpMajor"> Major</label>
+          <label class="chk-row"><input type="checkbox" id="tpMinor"> Minor</label>
+        </div>
+        <div class="damage-col">
+          <h4>Cargo Loss / Damage</h4>
+          <label class="chk-row"><input type="checkbox" id="cargoMajor"> Major</label>
+          <label class="chk-row"><input type="checkbox" id="cargoMinor"> Minor</label>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Recovery &amp; Follow-up</legend>
+      <div class="grid cols-3">
+        <div class="field"><label>Recovery Source</label>
+          <select id="recoverySource">
+            <option value="">Select</option>
+            <option>Insurance</option>
+            <option>Third Party</option>
+            <option>Driver</option>
+            <option>Company Insurance Claim</option>
+            <option>Not Applicable</option>
+          </select>
+        </div>
+        <div class="field"><label>Amount Recovered (PKR)</label><input type="number" min="0" step="0.01" id="amountRecovered" value="0"></div>
+        <div class="field"><label>Amount Spent on Recovery (PKR)</label><input type="number" min="0" step="0.01" id="amountSpent" value="0"></div>
+        <div class="field"><label>Net Financial Impact (PKR) (auto)</label><input type="number" id="netFinancialImpact" value="0" readonly style="background:#f2f5f9"></div>
+        <div class="field"><label>Training Required</label>
+          <select id="trainingRequired">
+            <option value="">Select</option>
+            <option>Yes</option>
+            <option>No</option>
+          </select>
+        </div>
+        <div class="field"><label>Training Status</label>
+          <select id="trainingStatus">
+            <option value="">Select</option>
+            <option>Pending</option>
+            <option>Scheduled</option>
+            <option>Completed</option>
+          </select>
+        </div>
+        <div class="field"><label>Training Details</label><input type="text" id="trainingDetails" placeholder="e.g. Defensive driving refresher"></div>
+        <div class="field"><label>Training Target / Completion Date</label><input type="date" id="trainingDate"></div>
+        <div class="field"><label>Follow-up Status</label>
+          <select id="followUpStatus">
+            <option value="">Select</option>
+            <option>Open</option>
+            <option>Under Investigation</option>
+            <option>Closed</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" style="margin-top:10px;"><label>Recovery / Follow-up Remarks</label><textarea id="recoveryRemarks" rows="3"></textarea></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Description</legend>
+      <div class="field"><label>Detailed Description of Incident</label><textarea id="description" rows="4"></textarea></div>
+      <div class="field" style="margin-top:10px;"><label>Immediate Actions Taken</label><textarea id="immediateActions" rows="4"></textarea></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Reported By</legend>
+      <div class="grid cols-3">
+        <div class="field"><label>Reported By (Name) <span class="req">*</span></label><input type="text" id="reportedBy" required></div>
+        <div class="field"><label>Designation <span class="req">*</span></label><input type="text" id="designation" required></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Photos</legend>
+      <div class="photo-drop" id="photoDrop">Click to add photos, or drag &amp; drop here (multiple allowed, optional)</div>
+      <input type="file" id="photoInput" accept="image/*" multiple style="display:none">
+      <div class="photo-grid" id="photoGrid"></div>
+    </fieldset>
+
+    <div style="display:flex;gap:10px;margin-top:6px;">
+      <button type="submit" class="btn btn-primary" id="submitBtn">Save Report</button>
+      <button type="button" class="btn btn-outline" id="clearFormBtn">Clear Form</button>
+    </div>
+  </form>
+</div>
+
+<!-- ============ ALL RECORDS VIEW ============ -->
+<div class="view" id="recordsView">
+  <div class="card">
+    <div class="toolbar">
+      <div class="field"><label>Search</label><input type="text" id="searchBox" placeholder="Location, driver, base station, reported by..."></div>
+      <div class="field"><label>From</label><input type="date" id="filterFrom"></div>
+      <div class="field"><label>To</label><input type="date" id="filterTo"></div>
+      <div class="field"><label>Incident Type</label>
+        <select id="filterType"><option value="">All Types</option></select>
+      </div>
+      <div class="field" style="flex:0;"><button class="btn btn-outline" id="clearFiltersBtn">Clear</button></div>
+      <div class="field" style="flex:0;"><button class="btn btn-outline" id="refreshRecordsBtn">Refresh</button></div>
+    </div>
+    <div style="overflow:auto;">
+      <table id="recordsTable">
+        <thead><tr>
+          <th>Plant</th><th>Date</th><th>Vehicle #</th><th>Driver Name</th><th>Base Station</th><th>Reported By</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="recordsBody"></tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="recordsEmpty" style="display:none;">No incident reports saved yet. Fill the "New Report" form to get started.</div>
+  </div>
+</div>
+
+<!-- ============ DASHBOARD VIEW ============ -->
+<div class="view" id="dashView">
+  <div class="toolbar" style="justify-content:flex-end;">
+    <div class="field" style="flex:0;"><button class="btn btn-outline" id="refreshDashBtn">Refresh</button></div>
+  </div>
+  <div class="kpis" id="kpiRow"></div>
+  <div class="charts-grid">
+    <div class="chart-card"><h3>Incidents per Month</h3><canvas id="chartMonthly"></canvas></div>
+    <div class="chart-card"><h3>Incident Type Breakdown</h3><canvas id="chartTypes"></canvas></div>
+    <div class="chart-card"><h3>Injuries: NL vs Third Party</h3><canvas id="chartInjuries"></canvas></div>
+    <div class="chart-card"><h3>Asset / Cargo Damage Severity</h3><canvas id="chartDamage"></canvas></div>
+    <div class="chart-card"><h3>Top Base Stations</h3><canvas id="chartBaseStations"></canvas></div>
+    <div class="chart-card"><h3>Loaded vs Empty</h3><canvas id="chartLoadStatus"></canvas></div>
+    <div class="chart-card" style="grid-column:1 / -1;"><h3>Recovery vs Spend (Last 12 Months)</h3><canvas id="chartRecoveryTrend"></canvas></div>
+    <div class="chart-card"><h3>Training Status</h3><canvas id="chartTrainingStatus"></canvas></div>
+  </div>
+</div>
+
+</main>
+
+<footer class="appfoot">Novatex Limited &middot; Initial Incident Report NL-Log-02-F1 &middot; Effective Date/Revision: 15th Mar 2025 / 1 &middot; Internal use only</footer>
+
+<!-- ============ VIEW / EDIT MODAL ============ -->
+<div class="modal-bg" id="viewModalBg">
+  <div class="modal">
+    <button class="close" id="closeViewModal">&times;</button>
+    <h2>Incident Report Detail</h2>
+    <div id="viewModalBody"></div>
+    <div class="row-actions" style="margin-top:14px;">
+      <button class="btn btn-primary btn-sm" id="editFromModal">Edit</button>
+      <button class="btn btn-gold btn-sm" id="pdfFromModal">Download PDF</button>
+      <button class="btn btn-danger btn-sm" id="deleteFromModal">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- hidden template used to render the PDF snapshot -->
+<div id="pdfTemplate"></div>
+
+<script>
+(function(){
+"use strict";
+
+const API_URL_KEY = "novatexApiUrl";
+let API_URL = localStorage.getItem(API_URL_KEY) || "";
+const TYPE_LIST = ["Injury of NL Employee","Injury to Third Party","Fatality","Environment Damage","Liquid Spillage","NL Asset Damage","Third Party Asset Damage","Cargo Damage","Cargo Loss"];
+
+let records = [];
+let currentPhotos = []; // {name, dataUrl, driveFileId?} for the form in progress
+let chartRefs = {};
+let activeRecordId = null;
+
+// ---------- sync backend helpers ----------
+async function apiGet(params){
+  if(!API_URL) throw new Error("Sync URL not configured");
+  const qs = new URLSearchParams(params||{}).toString();
+  const res = await fetch(API_URL + (qs?("?"+qs):""));
+  const j = await res.json();
+  if(!j.success) throw new Error(j.error || "Request failed");
+  return j;
+}
+async function apiPost(payload){
+  if(!API_URL) throw new Error("Sync URL not configured");
+  const res = await fetch(API_URL, {
+    method:"POST",
+    headers:{ "Content-Type":"text/plain;charset=utf-8" }, // avoids CORS preflight, which Apps Script can't handle
+    body: JSON.stringify(payload)
+  });
+  const j = await res.json();
+  if(!j.success) throw new Error(j.error || "Request failed");
+  return j;
+}
+async function fetchAllRecords(){
+  const j = await apiGet({action:"list"});
+  return j.records || [];
+}
+async function saveRecordToServer(record){ return apiPost({action:"save", record}); }
+async function deleteRecordOnServer(id){ return apiPost({action:"delete", id}); }
+async function uploadPhotoToServer(name, mimeType, dataBase64){
+  const j = await apiPost({action:"uploadPhoto", name, mimeType, dataBase64});
+  return j.driveFileId;
+}
+async function deletePhotoOnServer(driveFileId){
+  try{ await apiPost({action:"deletePhoto", driveFileId}); }catch(e){ /* best effort */ }
+}
+async function fetchPhotoDataUrl(driveFileId){
+  const j = await apiGet({action:"photo", id:driveFileId});
+  return j.dataUrl;
+}
+
+function setSyncStatus(connected){
+  document.getElementById("syncDot").className = "sync-dot " + (connected ? "on" : "off");
+  document.getElementById("syncLabel").textContent = connected ? "Connected" : "Not connected";
+}
+function showSyncBanner(msg){
+  document.getElementById("syncConfigBanner").style.display = "flex";
+  if(msg) document.getElementById("syncConfigMsg").textContent = msg;
+}
+function hideSyncBanner(){ document.getElementById("syncConfigBanner").style.display = "none"; }
+function showSyncError(msg){
+  const host = document.getElementById("syncErrorHost");
+  host.innerHTML = '<div class="banner error"><span>Couldn\'t reach the shared sheet: '+escapeHtml(msg)+'. Check your internet connection and Sync Settings, then try Refresh.</span></div>';
+  setSyncStatus(false);
+}
+function clearSyncError(){
+  document.getElementById("syncErrorHost").innerHTML = "";
+}
+
+async function refreshRecords(){
+  try{
+    records = await fetchAllRecords();
+    setSyncStatus(true);
+    clearSyncError();
+    renderRecordsTable();
+    renderDashboard();
+  }catch(err){
+    showSyncError(err.message);
+  }
+}
+
+document.getElementById("btnSyncSettings").addEventListener("click", ()=>{
+  document.getElementById("syncUrlInput").value = API_URL;
+  showSyncBanner("Update your Sync URL below (e.g. if you redeployed the Apps Script), then Connect.");
+});
+document.getElementById("saveSyncUrlBtn").addEventListener("click", async ()=>{
+  const url = document.getElementById("syncUrlInput").value.trim();
+  if(!url){ alert("Please paste the Web App URL first."); return; }
+  API_URL = url;
+  localStorage.setItem(API_URL_KEY, url);
+  try{
+    await refreshRecords();
+    hideSyncBanner();
+  }catch(err){
+    // refreshRecords already surfaces the error banner
+  }
+});
+
+// ---------- tab navigation ----------
+document.querySelectorAll(".tab-btn").forEach(btn=>{
+  btn.addEventListener("click", async ()=>{
+    document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+    document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.view).classList.add("active");
+    if(btn.dataset.view === "recordsView" || btn.dataset.view === "dashView"){
+      if(API_URL) await refreshRecords();
+    }
+  });
+});
+document.getElementById("refreshRecordsBtn").addEventListener("click", ()=>refreshRecords());
+document.getElementById("refreshDashBtn").addEventListener("click", ()=>refreshRecords());
+
+// ---------- photo handling ----------
+const photoDrop = document.getElementById("photoDrop");
+const photoInput = document.getElementById("photoInput");
+const photoGrid = document.getElementById("photoGrid");
+
+photoDrop.addEventListener("click", ()=>photoInput.click());
+photoDrop.addEventListener("dragover", e=>{ e.preventDefault(); photoDrop.style.borderColor="var(--gold)"; });
+photoDrop.addEventListener("dragleave", ()=>{ photoDrop.style.borderColor=""; });
+photoDrop.addEventListener("drop", e=>{
+  e.preventDefault(); photoDrop.style.borderColor="";
+  handleFiles(e.dataTransfer.files);
+});
+photoInput.addEventListener("change", e=>handleFiles(e.target.files));
+
+function handleFiles(fileList){
+  Array.from(fileList).forEach(file=>{
+    if(!file.type.startsWith("image/")) return;
+    compressImage(file).then(dataUrl=>{
+      currentPhotos.push({name:file.name, dataUrl});
+      renderPhotoGrid();
+    });
+  });
+}
+function compressImage(file, maxW, quality){
+  maxW = maxW || 1280; quality = quality || 0.72;
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = e=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let w = img.width, h = img.height;
+        if(w > maxW){ h = Math.round(h * maxW / w); w = maxW; }
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+function renderPhotoGrid(){
+  photoGrid.innerHTML = "";
+  currentPhotos.forEach((p, idx)=>{
+    const div = document.createElement("div");
+    div.className = "photo-thumb";
+    if(p.dataUrl){
+      div.innerHTML = '<img src="'+p.dataUrl+'"><button type="button" class="rm" data-idx="'+idx+'">&times;</button><div class="cap">'+escapeHtml(p.name)+'</div>';
+    } else {
+      div.innerHTML = '<div class="ph-missing">Loading photo&hellip;</div><button type="button" class="rm" data-idx="'+idx+'">&times;</button>';
+    }
+    photoGrid.appendChild(div);
+  });
+  photoGrid.querySelectorAll(".rm").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const idx = parseInt(btn.dataset.idx,10);
+      const removed = currentPhotos[idx];
+      currentPhotos.splice(idx,1);
+      renderPhotoGrid();
+      if(removed && removed.driveFileId) deletePhotoOnServer(removed.driveFileId);
+    });
+  });
+}
+
+// ---------- injury auto calc ----------
+["injNL","injThird","injMajor","injMinor"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", updateInjuryTotals);
+});
+function updateInjuryTotals(){
+  const nl = parseInt(document.getElementById("injNL").value,10) || 0;
+  const third = parseInt(document.getElementById("injThird").value,10) || 0;
+  const major = parseInt(document.getElementById("injMajor").value,10) || 0;
+  const minor = parseInt(document.getElementById("injMinor").value,10) || 0;
+  const total = nl + third;
+  document.getElementById("injTotal").value = total;
+  const mismatchEl = document.getElementById("injMismatch");
+  if((major + minor) !== total){
+    mismatchEl.textContent = "Note: Major + Minor (" + (major+minor) + ") does not match Total (" + total + ").";
+    mismatchEl.className = "small-muted mismatch";
+  } else {
+    mismatchEl.textContent = "";
+  }
+}
+
+// ---------- recovery & follow-up auto calc ----------
+["amountRecovered","amountSpent"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", updateRecoveryTotals);
+});
+function updateRecoveryTotals(){
+  const recovered = parseFloat(document.getElementById("amountRecovered").value) || 0;
+  const spent = parseFloat(document.getElementById("amountSpent").value) || 0;
+  document.getElementById("netFinancialImpact").value = (recovered - spent).toFixed(2);
+}
+
+// ---------- form submit ----------
+const form = document.getElementById("incidentForm");
+
+function buildRecordFromForm(editingId){
+  return {
+    id: editingId || uid(),
+    createdAt: editingId ? (records.find(r=>r.id===editingId)||{}).createdAt || new Date().toISOString() : new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    plant: val("plant"),
+    incidentDate: val("incidentDate"),
+    incidentTime: val("incidentTime"),
+    baseStation: val("baseStation"),
+    incidentLocation: val("incidentLocation"),
+    vehicleNumber: val("vehicleNumber"),
+    vehicleMake: val("vehicleMake"),
+    attachmentType: val("attachmentType"),
+    attachmentNumber: val("attachmentNumber"),
+    bunkerSize: val("bunkerSize"),
+    activity: val("activity"),
+    origin: val("origin"),
+    destination: val("destination"),
+    loadedEmpty: val("loadedEmpty"),
+    customer: val("customer"),
+    cargoType: val("cargoType"),
+    quantity: val("quantity"),
+    driverName: val("driverName"),
+    contactNumber: val("contactNumber"),
+    employeeId: val("employeeId"),
+    weatherCondition: val("weatherCondition"),
+    roadCondition: val("roadCondition"),
+    incidentTypes: Array.from(document.querySelectorAll("#incidentTypeGrid input:checked")).map(c=>c.value),
+    injury: {
+      nl: numVal("injNL"), third: numVal("injThird"), total: numVal("injTotal"),
+      major: numVal("injMajor"), minor: numVal("injMinor")
+    },
+    assetDamage: {
+      atplMajor: document.getElementById("atplMajor").checked,
+      atplMinor: document.getElementById("atplMinor").checked,
+      tpMajor: document.getElementById("tpMajor").checked,
+      tpMinor: document.getElementById("tpMinor").checked
+    },
+    cargoDamage: {
+      major: document.getElementById("cargoMajor").checked,
+      minor: document.getElementById("cargoMinor").checked
+    },
+    recoverySource: val("recoverySource"),
+    amountRecovered: floatVal("amountRecovered"),
+    amountSpent: floatVal("amountSpent"),
+    netFinancialImpact: floatVal("netFinancialImpact"),
+    trainingRequired: val("trainingRequired"),
+    trainingStatus: val("trainingStatus"),
+    trainingDetails: val("trainingDetails"),
+    trainingDate: val("trainingDate"),
+    followUpStatus: val("followUpStatus"),
+    recoveryRemarks: val("recoveryRemarks"),
+    description: val("description"),
+    immediateActions: val("immediateActions"),
+    reportedBy: val("reportedBy"),
+    designation: val("designation")
+  };
+}
+
+form.addEventListener("submit", async function(e){
+  e.preventDefault();
+  if(!API_URL){
+    showSyncBanner("Please connect to your shared Google Sheet before saving reports.");
+    alert("Live sync isn't configured yet. Please paste your Sync URL (top-right, Sync Settings) before saving.");
+    return;
+  }
+  const editingId = document.getElementById("editingId").value;
+  const submitBtn = document.getElementById("submitBtn");
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Saving...";
+  try{
+    const uploadedPhotos = [];
+    for(const p of currentPhotos){
+      if(p.driveFileId){ uploadedPhotos.push({name:p.name, driveFileId:p.driveFileId}); continue; }
+      const mimeMatch = /^data:(.*?);base64,/.exec(p.dataUrl||"");
+      const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg";
+      const base64 = (p.dataUrl||"").split(",")[1] || "";
+      const driveFileId = await uploadPhotoToServer(p.name, mimeType, base64);
+      uploadedPhotos.push({name:p.name, driveFileId});
+    }
+    const record = buildRecordFromForm(editingId);
+    record.photos = uploadedPhotos;
+
+    await saveRecordToServer(record);
+    await refreshRecords();
+
+    // use the in-memory dataUrls we already have for the immediate PDF (no need to re-fetch from Drive)
+    generatePDF(Object.assign({}, record, { photos: currentPhotos.slice() }));
+
+    showSubmitBanner(record, !!editingId);
+    resetForm();
+  }catch(err){
+    alert("Could not save this report: " + err.message + ". Please check your connection to the shared sheet and try again.");
+  }finally{
+    submitBtn.disabled = false;
+    submitBtn.textContent = document.getElementById("editingId").value ? "Update Report" : "Save Report";
+  }
+});
+
+function val(id){ return document.getElementById(id).value.trim(); }
+function numVal(id){ return parseInt(document.getElementById(id).value,10) || 0; }
+function floatVal(id){ return parseFloat(document.getElementById(id).value) || 0; }
+function money(v){ return "PKR " + Number(v||0).toLocaleString(undefined,{maximumFractionDigits:2}); }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+function showSubmitBanner(record, wasEdit){
+  activeRecordId = record.id;
+  const el = document.getElementById("submitBanner");
+  el.innerHTML =
+    '<div class="banner success">'+
+      '<span>'+(wasEdit ? "Report updated" : "Report saved")+' successfully and synced live. A PDF copy has been downloaded.</span>'+
+      '<span class="banner-actions">'+
+        '<button class="btn btn-gold btn-sm" id="bannerPdfBtn">Download PDF Again</button>'+
+        '<button class="btn btn-outline btn-sm" id="bannerViewBtn">Go to Records</button>'+
+      '</span>'+
+    '</div>';
+  document.getElementById("bannerPdfBtn").addEventListener("click", ()=>generatePDF(record));
+  document.getElementById("bannerViewBtn").addEventListener("click", ()=>{
+    document.querySelector('.tab-btn[data-view="recordsView"]').click();
+  });
+}
+
+function resetForm(){
+  form.reset();
+  document.getElementById("editingId").value = "";
+  document.getElementById("submitBtn").textContent = "Save Report";
+  currentPhotos = [];
+  renderPhotoGrid();
+  updateInjuryTotals();
+  updateRecoveryTotals();
+}
+document.getElementById("clearFormBtn").addEventListener("click", ()=>{
+  if(confirm("Clear all fields in this form?")) resetForm();
+});
+
+// ---------- records table ----------
+function populateTypeFilter(){
+  const sel = document.getElementById("filterType");
+  sel.innerHTML = '<option value="">All Types</option>' + TYPE_LIST.map(t=>'<option value="'+escapeHtml(t)+'">'+escapeHtml(t)+'</option>').join("");
+}
+populateTypeFilter();
+
+["searchBox","filterFrom","filterTo","filterType"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", renderRecordsTable);
+});
+document.getElementById("clearFiltersBtn").addEventListener("click", ()=>{
+  document.getElementById("searchBox").value = "";
+  document.getElementById("filterFrom").value = "";
+  document.getElementById("filterTo").value = "";
+  document.getElementById("filterType").value = "";
+  renderRecordsTable();
+});
+
+function getFilteredRecords(){
+  const q = document.getElementById("searchBox").value.toLowerCase();
+  const from = document.getElementById("filterFrom").value;
+  const to = document.getElementById("filterTo").value;
+  const type = document.getElementById("filterType").value;
+  return records.filter(r=>{
+    if(q){
+      const hay = [r.plant,r.incidentLocation,r.baseStation,r.driverName,r.reportedBy,r.customer,r.vehicleNumber].join(" ").toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    if(from && r.incidentDate && r.incidentDate < from) return false;
+    if(to && r.incidentDate && r.incidentDate > to) return false;
+    if(type && (!r.incidentTypes || !r.incidentTypes.includes(type))) return false;
+    return true;
+  }).sort((a,b)=> (b.incidentDate||"").localeCompare(a.incidentDate||"") || (b.createdAt||"").localeCompare(a.createdAt||""));
+}
+
+function renderRecordsTable(){
+  const list = getFilteredRecords();
+  const body = document.getElementById("recordsBody");
+  body.innerHTML = "";
+  document.getElementById("recordsEmpty").style.display = list.length ? "none" : "block";
+  list.forEach(r=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML =
+      '<td>'+escapeHtml(r.plant||"-")+'</td>'+
+      '<td>'+escapeHtml(r.incidentDate||"-")+'</td>'+
+      '<td>'+escapeHtml(r.vehicleNumber||"-")+'</td>'+
+      '<td>'+escapeHtml(r.driverName||"-")+'</td>'+
+      '<td>'+escapeHtml(r.baseStation||"-")+'</td>'+
+      '<td>'+escapeHtml(r.reportedBy||"-")+'</td>'+
+      '<td class="row-actions">'+
+        '<button class="btn btn-outline btn-sm" data-act="view" data-id="'+r.id+'">View</button>'+
+        '<button class="btn btn-outline btn-sm" data-act="edit" data-id="'+r.id+'">Edit</button>'+
+        '<button class="btn btn-gold btn-sm" data-act="pdf" data-id="'+r.id+'">PDF</button>'+
+        '<button class="btn btn-danger btn-sm" data-act="del" data-id="'+r.id+'">Delete</button>'+
+      '</td>';
+    body.appendChild(tr);
+  });
+  body.querySelectorAll("button").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const rec = records.find(x=>x.id===btn.dataset.id);
+      if(!rec) return;
+      if(btn.dataset.act === "view") openViewModal(rec);
+      if(btn.dataset.act === "edit") loadRecordIntoForm(rec);
+      if(btn.dataset.act === "pdf") generatePDF(rec);
+      if(btn.dataset.act === "del") deleteRecord(rec.id);
+    });
+  });
+}
+
+async function deleteRecord(id){
+  if(!confirm("Delete this incident report permanently for everyone with the link?")) return;
+  try{
+    await deleteRecordOnServer(id);
+    await refreshRecords();
+  }catch(err){
+    alert("Could not delete this report: " + err.message);
+  }
+  document.getElementById("viewModalBg").classList.remove("active");
+}
+
+// resolves rec.photos entries to include a usable dataUrl, fetching from Drive on demand and caching on the record object
+async function ensurePhotosLoaded(rec){
+  if(!rec.photos || !rec.photos.length) return rec.photos || [];
+  const needsFetch = rec.photos.some(p=>!p.dataUrl && p.driveFileId);
+  if(!needsFetch) return rec.photos;
+  const resolved = await Promise.all(rec.photos.map(async p=>{
+    if(p.dataUrl) return p;
+    if(!p.driveFileId) return p;
+    try{
+      const dataUrl = await fetchPhotoDataUrl(p.driveFileId);
+      return Object.assign({}, p, {dataUrl});
+    }catch(err){
+      return Object.assign({}, p, {dataUrl:null});
+    }
+  }));
+  rec.photos = resolved;
+  return resolved;
+}
+
+async function loadRecordIntoForm(rec){
+  document.getElementById("editingId").value = rec.id;
+  document.getElementById("submitBtn").textContent = "Update Report";
+  const map = ["plant","incidentDate","incidentTime","baseStation","incidentLocation","vehicleNumber","vehicleMake",
+    "attachmentType","attachmentNumber","bunkerSize","activity","origin","destination","loadedEmpty","customer",
+    "cargoType","quantity","driverName","contactNumber","employeeId","weatherCondition","roadCondition",
+    "description","immediateActions","reportedBy","designation",
+    "recoverySource","trainingRequired","trainingStatus","trainingDetails","trainingDate","followUpStatus","recoveryRemarks"];
+  map.forEach(f=>{ const el = document.getElementById(f); if(el) el.value = rec[f] || ""; });
+  document.querySelectorAll("#incidentTypeGrid input").forEach(c=>{
+    c.checked = (rec.incidentTypes||[]).includes(c.value);
+  });
+  document.getElementById("injNL").value = rec.injury ? rec.injury.nl : 0;
+  document.getElementById("injThird").value = rec.injury ? rec.injury.third : 0;
+  document.getElementById("injMajor").value = rec.injury ? rec.injury.major : 0;
+  document.getElementById("injMinor").value = rec.injury ? rec.injury.minor : 0;
+  updateInjuryTotals();
+  document.getElementById("atplMajor").checked = !!(rec.assetDamage && rec.assetDamage.atplMajor);
+  document.getElementById("atplMinor").checked = !!(rec.assetDamage && rec.assetDamage.atplMinor);
+  document.getElementById("tpMajor").checked = !!(rec.assetDamage && rec.assetDamage.tpMajor);
+  document.getElementById("tpMinor").checked = !!(rec.assetDamage && rec.assetDamage.tpMinor);
+  document.getElementById("cargoMajor").checked = !!(rec.cargoDamage && rec.cargoDamage.major);
+  document.getElementById("cargoMinor").checked = !!(rec.cargoDamage && rec.cargoDamage.minor);
+  document.getElementById("amountRecovered").value = rec.amountRecovered != null ? rec.amountRecovered : 0;
+  document.getElementById("amountSpent").value = rec.amountSpent != null ? rec.amountSpent : 0;
+  updateRecoveryTotals();
+
+  currentPhotos = (rec.photos||[]).slice();
+  renderPhotoGrid();
+  document.getElementById("viewModalBg").classList.remove("active");
+  document.querySelector('.tab-btn[data-view="formView"]').click();
+  window.scrollTo({top:0, behavior:"smooth"});
+
+  try{
+    const resolved = await ensurePhotosLoaded(rec);
+    currentPhotos = resolved.slice();
+    renderPhotoGrid();
+  }catch(err){ /* thumbnails may show "loading" if this fails; non-fatal */ }
+}
+
+// ---------- view modal ----------
+async function openViewModal(rec){
+  activeRecordId = rec.id;
+  const body = document.getElementById("viewModalBody");
+  body.innerHTML = '<p class="small-muted">Loading report&hellip;</p>';
+  document.getElementById("viewModalBg").classList.add("active");
+  try{
+    await ensurePhotosLoaded(rec);
+  }catch(err){ /* fall through and render with whatever we have */ }
+
+  const typeBadges = (rec.incidentTypes||[]).map(t=>'<span class="badge">'+escapeHtml(t)+'</span>').join(" ") || '<span class="small-muted">None recorded</span>';
+  const photos = (rec.photos||[]).map(p=> p.dataUrl
+    ? '<div class="photo-thumb"><img src="'+p.dataUrl+'"><div class="cap">'+escapeHtml(p.name)+'</div></div>'
+    : '<div class="photo-thumb"><div class="ph-missing">Photo unavailable</div></div>'
+  ).join("");
+  body.innerHTML =
+    '<div class="detail-grid">'+
+      field("Plant", rec.plant)+field("Incident Date", rec.incidentDate)+field("Incident Time", rec.incidentTime)+
+      field("Base Station", rec.baseStation)+field("Incident Location", rec.incidentLocation)+
+      field("Vehicle #", rec.vehicleNumber)+field("Vehicle Make", rec.vehicleMake)+
+      field("Attachment Type", rec.attachmentType)+field("Attachment #", rec.attachmentNumber)+
+      field("Size", rec.bunkerSize)+field("Activity", rec.activity)+
+      field("Origin", rec.origin)+field("Destination", rec.destination)+
+      field("Loaded/Empty", rec.loadedEmpty)+field("Customer", rec.customer)+
+      field("Cargo Type", rec.cargoType)+field("Quantity", rec.quantity)+
+      field("Driver Name", rec.driverName)+field("Contact #", rec.contactNumber)+
+      field("Employee ID", rec.employeeId)+field("Weather Condition", rec.weatherCondition)+
+      field("Road Condition", rec.roadCondition)+field("Reported By", rec.reportedBy)+
+      field("Designation", rec.designation)+
+    '</div>'+
+    '<p><b>Incident Type(s):</b><br>'+typeBadges+'</p>'+
+    '<div class="detail-grid">'+
+      field("NL Injuries", rec.injury?rec.injury.nl:0)+field("Third Party Injuries", rec.injury?rec.injury.third:0)+
+      field("Total Injuries", rec.injury?rec.injury.total:0)+field("Major / Minor Injuries", (rec.injury?rec.injury.major:0)+" / "+(rec.injury?rec.injury.minor:0))+
+    '</div>'+
+    '<p><b>Novatex Asset:</b> '+damageBadge(rec.assetDamage&&rec.assetDamage.atplMajor,"Major")+damageBadge(rec.assetDamage&&rec.assetDamage.atplMinor,"Minor")+
+    ' &nbsp; <b>Third Party Asset:</b> '+damageBadge(rec.assetDamage&&rec.assetDamage.tpMajor,"Major")+damageBadge(rec.assetDamage&&rec.assetDamage.tpMinor,"Minor")+
+    ' &nbsp; <b>Cargo:</b> '+damageBadge(rec.cargoDamage&&rec.cargoDamage.major,"Major")+damageBadge(rec.cargoDamage&&rec.cargoDamage.minor,"Minor")+'</p>'+
+    '<div class="detail-grid">'+
+      field("Recovery Source", rec.recoverySource)+field("Amount Recovered", money(rec.amountRecovered))+
+      field("Amount Spent on Recovery", money(rec.amountSpent))+field("Net Financial Impact", money(rec.netFinancialImpact))+
+      field("Training Required", rec.trainingRequired)+field("Training Status", rec.trainingStatus)+
+      field("Training Details", rec.trainingDetails)+field("Training Target/Completion Date", rec.trainingDate)+
+      field("Follow-up Status", rec.followUpStatus)+
+    '</div>'+
+    '<p><b>Recovery / Follow-up Remarks:</b><br>'+ (escapeHtml(rec.recoveryRemarks)||'<span class="small-muted">None</span>') +'</p>'+
+    '<p><b>Detailed Description:</b><br>'+ (escapeHtml(rec.description)||'<span class="small-muted">None</span>') +'</p>'+
+    '<p><b>Immediate Actions Taken:</b><br>'+ (escapeHtml(rec.immediateActions)||'<span class="small-muted">None</span>') +'</p>'+
+    (photos ? '<p><b>Photos:</b></p><div class="photo-grid">'+photos+'</div>' : '');
+}
+function field(label, value){
+  return '<div><b>'+escapeHtml(label)+'</b>'+(escapeHtml(String(value==null?"":value))||'-')+'</div>';
+}
+function damageBadge(flag, label){
+  if(!flag) return "";
+  return '<span class="badge '+(label==="Major"?"major":"minor")+'">'+label+'</span>';
+}
+document.getElementById("closeViewModal").addEventListener("click", ()=>document.getElementById("viewModalBg").classList.remove("active"));
+document.getElementById("viewModalBg").addEventListener("click", e=>{ if(e.target.id==="viewModalBg") e.currentTarget.classList.remove("active"); });
+document.getElementById("editFromModal").addEventListener("click", ()=>{
+  const rec = records.find(r=>r.id===activeRecordId);
+  if(rec) loadRecordIntoForm(rec);
+});
+document.getElementById("pdfFromModal").addEventListener("click", ()=>{
+  const rec = records.find(r=>r.id===activeRecordId);
+  if(rec) generatePDF(rec);
+});
+document.getElementById("deleteFromModal").addEventListener("click", ()=>{
+  if(activeRecordId) deleteRecord(activeRecordId);
+});
+
+// ---------- import / export ----------
+document.getElementById("btnExportAll").addEventListener("click", ()=>{
+  if(!records.length){ alert("No records to export yet."); return; }
+  downloadJSON(records, "Novatex_Incident_Reports_AllRecords_" + new Date().toISOString().slice(0,10) + ".json");
+});
+function downloadJSON(obj, filename){
+  const blob = new Blob([JSON.stringify(obj, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+document.getElementById("btnImport").addEventListener("click", ()=>document.getElementById("importFile").click());
+document.getElementById("importFile").addEventListener("change", async e=>{
+  if(!API_URL){ alert("Please connect to your shared Google Sheet first (Sync Settings)."); e.target.value=""; return; }
+  const files = Array.from(e.target.files);
+  let importedCount = 0, skipped = 0;
+  for(const file of files){
+    let data;
+    try{
+      const text = await file.text();
+      data = JSON.parse(text);
+    }catch(err){ skipped++; continue; }
+    const incoming = Array.isArray(data) ? data : [data];
+    for(const rec of incoming){
+      if(!rec || !rec.id){ skipped++; continue; }
+      try{
+        await importRecord(rec);
+        importedCount++;
+      }catch(err){ skipped++; }
+    }
+  }
+  await refreshRecords();
+  alert("Import complete: " + importedCount + " record(s) synced, " + skipped + " skipped.");
+  e.target.value = "";
+});
+async function importRecord(rec){
+  const photos = rec.photos || [];
+  const uploaded = [];
+  for(const p of photos){
+    if(p.driveFileId){ uploaded.push({name:p.name, driveFileId:p.driveFileId}); continue; }
+    if(p.dataUrl){
+      const mimeMatch = /^data:(.*?);base64,/.exec(p.dataUrl);
+      const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg";
+      const base64 = p.dataUrl.split(",")[1] || "";
+      const driveFileId = await uploadPhotoToServer(p.name, mimeType, base64);
+      uploaded.push({name:p.name, driveFileId});
+    }
+  }
+  rec.photos = uploaded;
+  await saveRecordToServer(rec);
+}
+
+// ---------- dashboard ----------
+function renderDashboard(){
+  const total = records.length;
+  const totalInjuries = records.reduce((s,r)=> s + (r.injury?r.injury.total:0), 0);
+  const fatalities = records.filter(r=> (r.incidentTypes||[]).includes("Fatality")).length;
+  const now = new Date();
+  const thisMonthKey = now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
+  const thisMonth = records.filter(r=> (r.incidentDate||"").slice(0,7) === thisMonthKey).length;
+  const damageCount = records.filter(r=>{
+    const a = r.assetDamage||{}, c = r.cargoDamage||{};
+    return a.atplMajor||a.atplMinor||a.tpMajor||a.tpMinor||c.major||c.minor;
+  }).length;
+  const totalRecovered = records.reduce((s,r)=> s + (Number(r.amountRecovered)||0), 0);
+  const totalSpent = records.reduce((s,r)=> s + (Number(r.amountSpent)||0), 0);
+  const netImpact = totalRecovered - totalSpent;
+  const trainingsPending = records.filter(r=> r.trainingRequired==="Yes" && r.trainingStatus!=="Completed").length;
+  const openFollowUps = records.filter(r=> r.followUpStatus==="Open" || r.followUpStatus==="Under Investigation").length;
+
+  const kpiRow = document.getElementById("kpiRow");
+  kpiRow.innerHTML =
+    kpi(total,"Total Incidents") +
+    kpi(totalInjuries,"Total Injuries") +
+    kpi(thisMonth,"This Month") +
+    kpi(damageCount,"With Asset/Cargo Damage") +
+    kpi(fatalities,"Fatalities", fatalities>0) +
+    kpi(money(totalRecovered),"Total Recovered") +
+    kpi(money(totalSpent),"Total Spent on Recovery") +
+    kpi(money(netImpact),"Net Financial Impact", netImpact<0) +
+    kpi(trainingsPending,"Trainings Pending", trainingsPending>0) +
+    kpi(openFollowUps,"Open Follow-ups", openFollowUps>0);
+
+  const chartsGrid = document.querySelector("#dashView .charts-grid");
+  const chartWarnId = "chartLibWarning";
+  let warnEl = document.getElementById(chartWarnId);
+  if(typeof Chart === "undefined"){
+    if(!warnEl){
+      warnEl = document.createElement("div");
+      warnEl.id = chartWarnId;
+      warnEl.className = "banner warn";
+      warnEl.style.gridColumn = "1 / -1";
+      warnEl.textContent = "Charts could not load (the charting library failed to load, usually due to no internet access). The counts above are still accurate. Reconnect and reload the page to see the charts.";
+      chartsGrid.parentNode.insertBefore(warnEl, chartsGrid);
+    }
+    return;
+  } else if(warnEl){
+    warnEl.remove();
+  }
+
+  [renderMonthlyChart, renderTypesChart, renderInjuriesChart, renderDamageChart, renderBaseStationsChart, renderLoadStatusChart, renderRecoveryTrendChart, renderTrainingStatusChart].forEach(fn=>{
+    try{ fn(); } catch(err){ console.error("Chart render failed:", fn.name, err); }
+  });
+}
+function kpi(num,label,alert){
+  return '<div class="kpi'+(alert?" alert":"")+'"><div class="num">'+num+'</div><div class="lbl">'+escapeHtml(label)+'</div></div>';
+}
+function destroyChart(key){ if(chartRefs[key]){ chartRefs[key].destroy(); delete chartRefs[key]; } }
+
+function lastNMonths(n){
+  const arr = [];
+  const d = new Date();
+  d.setDate(1);
+  for(let i=n-1;i>=0;i--){
+    const dt = new Date(d.getFullYear(), d.getMonth()-i, 1);
+    arr.push(dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0"));
+  }
+  return arr;
+}
+function renderMonthlyChart(){
+  const months = lastNMonths(12);
+  const counts = months.map(m=> records.filter(r=>(r.incidentDate||"").slice(0,7)===m).length);
+  destroyChart("monthly");
+  chartRefs.monthly = new Chart(document.getElementById("chartMonthly"), {
+    type:"bar",
+    data:{ labels:months, datasets:[{label:"Incidents", data:counts, backgroundColor:"#0d2a52"}] },
+    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{precision:0}}} }
+  });
+}
+function renderTypesChart(){
+  const counts = TYPE_LIST.map(t=> records.filter(r=>(r.incidentTypes||[]).includes(t)).length);
+  destroyChart("types");
+  chartRefs.types = new Chart(document.getElementById("chartTypes"), {
+    type:"doughnut",
+    data:{ labels:TYPE_LIST, datasets:[{data:counts, backgroundColor:["#0d2a52","#d99a2b","#c0392b","#1e8449","#6b7686","#3a6ea5","#8a6116","#8e44ad","#16a085"]}] },
+    options:{ responsive:true, plugins:{legend:{position:"bottom", labels:{boxWidth:11,font:{size:10}}}} }
+  });
+}
+function renderInjuriesChart(){
+  const nl = records.reduce((s,r)=>s+(r.injury?r.injury.nl:0),0);
+  const third = records.reduce((s,r)=>s+(r.injury?r.injury.third:0),0);
+  const major = records.reduce((s,r)=>s+(r.injury?r.injury.major:0),0);
+  const minor = records.reduce((s,r)=>s+(r.injury?r.injury.minor:0),0);
+  destroyChart("injuries");
+  chartRefs.injuries = new Chart(document.getElementById("chartInjuries"), {
+    type:"bar",
+    data:{ labels:["NL Employees","Third Party","Major","Minor"], datasets:[{label:"Count", data:[nl,third,major,minor], backgroundColor:["#0d2a52","#3a6ea5","#c0392b","#d99a2b"]}] },
+    options:{ responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,ticks:{precision:0}}} }
+  });
+}
+function renderDamageChart(){
+  const atplMajor = records.filter(r=>r.assetDamage&&r.assetDamage.atplMajor).length;
+  const atplMinor = records.filter(r=>r.assetDamage&&r.assetDamage.atplMinor).length;
+  const tpMajor = records.filter(r=>r.assetDamage&&r.assetDamage.tpMajor).length;
+  const tpMinor = records.filter(r=>r.assetDamage&&r.assetDamage.tpMinor).length;
+  const cargoMajor = records.filter(r=>r.cargoDamage&&r.cargoDamage.major).length;
+  const cargoMinor = records.filter(r=>r.cargoDamage&&r.cargoDamage.minor).length;
+  destroyChart("damage");
+  chartRefs.damage = new Chart(document.getElementById("chartDamage"), {
+    type:"bar",
+    data:{
+      labels:["Novatex Asset","Third Party Asset","Cargo"],
+      datasets:[
+        {label:"Major", data:[atplMajor,tpMajor,cargoMajor], backgroundColor:"#c0392b"},
+        {label:"Minor", data:[atplMinor,tpMinor,cargoMinor], backgroundColor:"#d99a2b"}
+      ]
+    },
+    options:{ responsive:true, scales:{y:{beginAtZero:true,ticks:{precision:0}}}, plugins:{legend:{position:"bottom"}} }
+  });
+}
+function renderBaseStationsChart(){
+  const counts = {};
+  records.forEach(r=>{
+    const bs = (r.baseStation||"").trim() || "Unspecified";
+    counts[bs] = (counts[bs]||0) + 1;
+  });
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  destroyChart("baseStations");
+  chartRefs.baseStations = new Chart(document.getElementById("chartBaseStations"), {
+    type:"bar",
+    data:{ labels: sorted.map(s=>s[0]), datasets:[{label:"Incidents", data: sorted.map(s=>s[1]), backgroundColor:"#0d2a52"}] },
+    options:{ indexAxis:"y", responsive:true, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true,ticks:{precision:0}}} }
+  });
+}
+function renderLoadStatusChart(){
+  const loaded = records.filter(r=>r.loadedEmpty==="Loaded").length;
+  const empty = records.filter(r=>r.loadedEmpty==="Empty").length;
+  const unspecified = records.length - loaded - empty;
+  destroyChart("loadStatus");
+  chartRefs.loadStatus = new Chart(document.getElementById("chartLoadStatus"), {
+    type:"pie",
+    data:{ labels:["Loaded","Empty","Unspecified"], datasets:[{data:[loaded,empty,unspecified], backgroundColor:["#0d2a52","#d99a2b","#c5cdd9"]}] },
+    options:{ responsive:true, plugins:{legend:{position:"bottom"}} }
+  });
+}
+function renderRecoveryTrendChart(){
+  const months = lastNMonths(12);
+  const recoveredByMonth = months.map(m=> records.filter(r=>(r.incidentDate||"").slice(0,7)===m).reduce((s,r)=>s+(Number(r.amountRecovered)||0),0));
+  const spentByMonth = months.map(m=> records.filter(r=>(r.incidentDate||"").slice(0,7)===m).reduce((s,r)=>s+(Number(r.amountSpent)||0),0));
+  destroyChart("recoveryTrend");
+  chartRefs.recoveryTrend = new Chart(document.getElementById("chartRecoveryTrend"), {
+    type:"bar",
+    data:{ labels:months, datasets:[
+      {label:"Amount Recovered (PKR)", data:recoveredByMonth, backgroundColor:"#1e8449"},
+      {label:"Amount Spent (PKR)", data:spentByMonth, backgroundColor:"#c0392b"}
+    ]},
+    options:{ responsive:true, scales:{y:{beginAtZero:true}}, plugins:{legend:{position:"bottom"}} }
+  });
+}
+function renderTrainingStatusChart(){
+  const statuses = ["Pending","Scheduled","Completed"];
+  const counts = statuses.map(s=> records.filter(r=>r.trainingRequired==="Yes" && r.trainingStatus===s).length);
+  const noneCount = records.filter(r=> r.trainingRequired!=="Yes").length;
+  destroyChart("trainingStatus");
+  chartRefs.trainingStatus = new Chart(document.getElementById("chartTrainingStatus"), {
+    type:"doughnut",
+    data:{ labels:statuses.concat(["Not Required / Unspecified"]), datasets:[{data:counts.concat([noneCount]), backgroundColor:["#d99a2b","#3a6ea5","#1e8449","#c5cdd9"]}] },
+    options:{ responsive:true, plugins:{legend:{position:"bottom"}} }
+  });
+}
+
+// ---------- PDF generation ----------
+async function generatePDF(rec){
+  try{
+    await ensurePhotosLoaded(rec);
+  }catch(err){ /* proceed; missing photos are shown as unavailable */ }
+
+  const tpl = document.getElementById("pdfTemplate");
+  tpl.innerHTML = buildPdfHTML(rec);
+  const opts = { scale:2, useCORS:true, backgroundColor:"#ffffff" };
+  html2canvas(tpl, opts).then(canvas=>{
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF("p","pt","a4");
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pageWidth;
+    const imgHeight = canvas.height * imgWidth / canvas.width;
+    const imgData = canvas.toDataURL("image/png");
+    let heightLeft = imgHeight, position = 0;
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+    while(heightLeft > 0){
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+    pdf.save(pdfFileName(rec));
+    tpl.innerHTML = "";
+  }).catch(err=>{
+    alert("PDF generation failed: " + err.message + ". You can try again, or use your browser's Print > Save as PDF as a fallback.");
+    tpl.innerHTML = "";
+  });
+}
+function sanitizeFileNamePart(v){
+  return String(v||"").trim().replace(/[\\/:*?"<>|]/g, "-") || "Unspecified";
+}
+function pdfFileName(rec){
+  return "Incident - " + sanitizeFileNamePart(rec.vehicleNumber) + " - " + sanitizeFileNamePart(rec.incidentDate) + ".pdf";
+}
+function chk(flag){ return flag ? "&#9746;" : "&#9744;"; }
+function esc(v){ return escapeHtml(v==null? "" : String(v)); }
+function buildPdfHTML(r){
+  const typeRows = TYPE_LIST.map(t=> '<div style="width:50%;display:inline-block;font-size:11px;padding:2px 0;">'+chk((r.incidentTypes||[]).includes(t))+' '+esc(t)+'</div>').join("");
+  const photos = (r.photos||[]).filter(p=>p.dataUrl).map(p=>'<div style="display:inline-block;width:23%;margin:1%;vertical-align:top;"><img src="'+p.dataUrl+'" style="width:100%;border:1px solid #ccc;border-radius:4px;"><div style="font-size:9px;color:#666;word-break:break-all;">'+esc(p.name)+'</div></div>').join("");
+  return (
+  '<div style="font-family:Arial,sans-serif;padding:30px;color:#1e2b3c;">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #0d2a52;padding-bottom:10px;margin-bottom:14px;">'+
+      '<div style="font-weight:800;font-size:18px;color:#0d2a52;">Gatronova Logistics</div>'+
+      '<div style="text-align:right;font-size:11px;color:#555;">Effective Date/Revision<br><b>15th Mar, 2025 / 1</b></div>'+
+    '</div>'+
+    '<table style="width:100%;border-collapse:collapse;margin-bottom:14px;"><tr>'+
+      '<td style="border:2px solid #0d2a52;padding:8px 12px;font-weight:bold;font-size:15px;background:#f2f5f9;">INITIAL INCIDENT REPORT</td>'+
+      '<td style="border:2px solid #0d2a52;padding:8px 12px;font-weight:bold;font-size:15px;width:140px;text-align:center;">NL-Log-02-F1</td>'+
+    '</tr></table>'+
+    pdfTable([
+      ["Plant", esc(r.plant), "", ""],
+      ["Incident Date", esc(r.incidentDate), "Incident Time", esc(r.incidentTime)],
+      ["Base Station", esc(r.baseStation), "Incident Location", esc(r.incidentLocation)],
+      ["Vehicle #", esc(r.vehicleNumber), "Attachment Type / Size", esc(r.attachmentType)+" / "+esc(r.bunkerSize)],
+      ["Attachment #", esc(r.attachmentNumber), "Activity Associated", esc(r.activity)],
+      ["Vehicle Make", esc(r.vehicleMake), "Loaded/Empty", esc(r.loadedEmpty)],
+      ["Origin", esc(r.origin), "Destination", esc(r.destination)],
+      ["Customer", esc(r.customer), "Cargo Type", esc(r.cargoType)],
+      ["Quantity", esc(r.quantity), "Driver Name", esc(r.driverName)],
+      ["Contact #", esc(r.contactNumber), "Employee ID", esc(r.employeeId)],
+      ["Weather Condition", esc(r.weatherCondition), "Road Condition", esc(r.roadCondition)]
+    ])+
+    '<div style="border:1px solid #999;padding:8px 12px;margin-bottom:12px;">'+
+      '<b style="font-size:12px;">Incident Type</b><div style="margin-top:4px;">'+typeRows+'</div>'+
+    '</div>'+
+    '<table style="width:100%;border-collapse:collapse;margin-bottom:12px;font-size:11px;">'+
+      '<tr><td style="border:1px solid #999;padding:6px 10px;"><b>NL Injuries:</b> '+esc(r.injury?r.injury.nl:0)+'</td>'+
+      '<td style="border:1px solid #999;padding:6px 10px;"><b>Third Party Injuries:</b> '+esc(r.injury?r.injury.third:0)+'</td>'+
+      '<td style="border:1px solid #999;padding:6px 10px;"><b>Total Injuries:</b> '+esc(r.injury?r.injury.total:0)+'</td></tr>'+
+      '<tr><td style="border:1px solid #999;padding:6px 10px;" colspan="2"><b>Major / Minor Injuries:</b> '+esc(r.injury?r.injury.major:0)+' / '+esc(r.injury?r.injury.minor:0)+'</td>'+
+      '<td style="border:1px solid #999;padding:6px 10px;"><b>Novatex Asset:</b> '+chk(r.assetDamage&&r.assetDamage.atplMajor)+'Major '+chk(r.assetDamage&&r.assetDamage.atplMinor)+'Minor</td></tr>'+
+      '<tr><td style="border:1px solid #999;padding:6px 10px;"><b>Third Party Asset:</b> '+chk(r.assetDamage&&r.assetDamage.tpMajor)+'Major '+chk(r.assetDamage&&r.assetDamage.tpMinor)+'Minor</td>'+
+      '<td style="border:1px solid #999;padding:6px 10px;" colspan="2"><b>Cargo Loss/Damage:</b> '+chk(r.cargoDamage&&r.cargoDamage.major)+'Major '+chk(r.cargoDamage&&r.cargoDamage.minor)+'Minor</td></tr>'+
+    '</table>'+
+    '<div style="border:1px solid #999;padding:8px 12px;margin-bottom:12px;">'+
+      '<b style="font-size:12px;">Recovery &amp; Follow-up</b>'+
+      '<table style="width:100%;border-collapse:collapse;margin-top:6px;font-size:11px;">'+
+        '<tr><td style="border:1px solid #999;padding:6px 10px;background:#f7f9fc;width:25%;"><b>Recovery Source</b></td><td style="border:1px solid #999;padding:6px 10px;width:25%;">'+esc(r.recoverySource)+'</td>'+
+        '<td style="border:1px solid #999;padding:6px 10px;background:#f7f9fc;width:25%;"><b>Follow-up Status</b></td><td style="border:1px solid #999;padding:6px 10px;width:25%;">'+esc(r.followUpStatus)+'</td></tr>'+
+        '<tr><td style="border:1px solid #999;padding:6px 10px;background:#f7f9fc;"><b>Amount Recovered</b></td><td style="border:1px solid #999;padding:6px 10px;">'+esc(money(r.amountRecovered))+'</td>'+
+        '<td style="border:1px solid #999;padding:6px 10px;background:#f7f9fc;"><b>Amount Spent on Recovery</b></td><td style="border:1px solid #999;padding:6px 10px;">'+esc(money(r.amountSpent))+'</td></tr>'+
+        '<tr><td style="border:1px solid #999;padding:6px 10px;background:#f7f9fc;"><b>Net Financial Impact</b></td><td style="border:1px solid #999;padding:6px 10px;">'+esc(money(r.netFinancialImpact))+'</td>'+
+        '<td style="border:1px solid #999;padding:6px 10px;background:#f7f9fc;"><b>Training Required</b></td><td style="border:1px solid #999;padding:6px 10px;">'+esc(r.trainingRequired)+'</td></tr>'+
+        '<tr><td style="border:1px solid #999;padding:6px 10px;background:#f7f9fc;"><b>Training Status</b></td><td style="border:1px solid #999;padding:6px 10px;">'+esc(r.trainingStatus)+'</td>'+
+        '<td style="border:1px solid #999;padding:6px 10px;background:#f7f9fc;"><b>Training Target/Completion Date</b></td><td style="border:1px solid #999;padding:6px 10px;">'+esc(r.trainingDate)+'</td></tr>'+
+        '<tr><td style="border:1px solid #999;padding:6px 10px;background:#f7f9fc;"><b>Training Details</b></td><td style="border:1px solid #999;padding:6px 10px;" colspan="3">'+esc(r.trainingDetails)+'</td></tr>'+
+      '</table>'+
+      '<div style="font-size:11.5px;margin-top:8px;"><b>Remarks:</b> '+esc(r.recoveryRemarks)+'</div>'+
+    '</div>'+
+    '<div style="border:1px solid #999;padding:8px 12px;margin-bottom:12px;min-height:60px;"><b style="font-size:12px;">Detailed Description of Incident</b><div style="font-size:11.5px;margin-top:4px;white-space:pre-wrap;">'+esc(r.description)+'</div></div>'+
+    '<div style="border:1px solid #999;padding:8px 12px;margin-bottom:12px;min-height:60px;"><b style="font-size:12px;">Immediate Actions Taken</b><div style="font-size:11.5px;margin-top:4px;white-space:pre-wrap;">'+esc(r.immediateActions)+'</div></div>'+
+    '<table style="width:100%;border-collapse:collapse;margin-bottom:16px;">'+
+      '<tr><td style="border:1px solid #999;padding:6px 10px;font-size:11.5px;"><b>Reported By:</b> '+esc(r.reportedBy)+'</td>'+
+      '<td style="border:1px solid #999;padding:6px 10px;font-size:11.5px;"><b>Designation:</b> '+esc(r.designation)+'</td></tr>'+
+    '</table>'+
+    (photos ? '<div><b style="font-size:12px;">Photos</b><div style="margin-top:8px;">'+photos+'</div></div>' : '')+
+    '<div style="margin-top:20px;font-size:9.5px;color:#888;text-align:center;border-top:1px solid #ccc;padding-top:8px;">Novatex Limited &middot; NL-Log-02-F1 &middot; Effective Date/Revision: 15th Mar 2025 / 1</div>'+
+  '</div>');
+}
+function pdfTable(rows){
+  return '<table style="width:100%;border-collapse:collapse;margin-bottom:12px;font-size:11px;">' +
+    rows.map(r=>
+      '<tr>'+
+        '<td style="border:1px solid #999;padding:6px 10px;background:#f7f9fc;width:18%;"><b>'+r[0]+'</b></td>'+
+        '<td style="border:1px solid #999;padding:6px 10px;width:32%;">'+r[1]+'</td>'+
+        '<td style="border:1px solid #999;padding:6px 10px;background:#f7f9fc;width:18%;"><b>'+r[2]+'</b></td>'+
+        '<td style="border:1px solid #999;padding:6px 10px;width:32%;">'+r[3]+'</td>'+
+      '</tr>'
+    ).join("") +
+  '</table>';
+}
+
+function escapeHtml(str){
+  if(str === undefined || str === null) return "";
+  return String(str).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+}
+
+// ---------- init ----------
+(async function init(){
+  updateInjuryTotals();
+  updateRecoveryTotals();
+  renderPhotoGrid();
+  if(API_URL){
+    await refreshRecords();
+  } else {
+    showSyncBanner();
+  }
+})();
+
+})();
+</script>
+</body>
+</html>
